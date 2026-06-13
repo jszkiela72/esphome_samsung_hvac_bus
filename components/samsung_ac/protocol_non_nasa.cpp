@@ -438,21 +438,6 @@ namespace esphome
                 command8D.inverter_power_w = command8D.inverter_current_a * 0.1f * command8D.inverter_voltage_v; // Power in Watts
                 return {DecodeResultType::Processed, 14};
 
-            else if (nonpacket_.cmd == NonNasaCommand::CmdF3)
-            {
-                // CmdF3 — telemetria inwertera (alternatywa wobec Cmd8D na części jednostek NonNASA)
-                target->set_outdoor_instantaneous_power(nonpacket_.src, nonpacket_.commandF3.inverter_power_w);
-                target->set_outdoor_current(nonpacket_.src, nonpacket_.commandF3.inverter_current_a);
-                target->set_outdoor_voltage(nonpacket_.src, nonpacket_.commandF3.inverter_voltage_v);
-
-                // energia skumulowana — ta sama metoda całkowania co przy Cmd8D
-                CumulativeEnergyTracker &tracker = cumulative_energy_trackers_[nonpacket_.src];
-                const uint32_t now = millis();
-                update_cumulative_energy_tracker(tracker, nonpacket_.commandF3.inverter_power_w, now);
-                float cumulative_energy_wh = static_cast<float>(tracker.accumulated_energy_kwh * 1000.0);
-                target->set_outdoor_cumulative_energy(nonpacket_.src, cumulative_energy_wh);
-            }    
-                
             case NonNasaCommand::CmdF0:
                 commandF0.outdoor_unit_freeze_protection = data[4] & 0b10000000;
                 commandF0.outdoor_unit_heating_overload = data[4] & 0b01000000;
