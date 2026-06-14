@@ -934,6 +934,22 @@ namespace esphome
                 float cumulative_energy_wh = static_cast<float>(tracker.accumulated_energy_kwh * 1000.0);
                 target->set_outdoor_cumulative_energy(nonpacket_.src, cumulative_energy_wh);
             }
+            else if (nonpacket_.cmd == NonNasaCommand::CmdF3)
+            {
+                // CmdF3 carries inverter telemetry on outdoor units that do NOT emit Cmd8D.
+                // Same scaling as Cmd8D (current=data[8]/10, voltage=data[9]*2,
+                // power=current_a*0.1f*voltage_v), so existing sensor filters apply unchanged.
+                target->set_outdoor_instantaneous_power(nonpacket_.src, nonpacket_.commandF3.inverter_power_w);
+                target->set_outdoor_current(nonpacket_.src, nonpacket_.commandF3.inverter_current_a);
+                target->set_outdoor_voltage(nonpacket_.src, nonpacket_.commandF3.inverter_voltage_v);
+
+                // Cumulative energy: integrate power over time (same helper as Cmd8D).
+                CumulativeEnergyTracker &tracker = cumulative_energy_trackers_[nonpacket_.src];
+                const uint32_t now = millis();
+                update_cumulative_energy_tracker(tracker, nonpacket_.commandF3.inverter_power_w, now);
+                float cumulative_energy_wh = static_cast<float>(tracker.accumulated_energy_kwh * 1000.0);
+                target->set_outdoor_cumulative_energy(nonpacket_.src, cumulative_energy_wh);
+            }
             else if (nonpacket_.cmd == NonNasaCommand::CmdF0)
             {
                 // CmdF0 comes from the outdoor unit and contains error code and status information
